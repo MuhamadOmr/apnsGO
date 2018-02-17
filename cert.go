@@ -5,32 +5,39 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
-	"golang.org/x/crypto/pkcs12"
 	"io/ioutil"
+	"log"
 )
 
 func FromPemFile(filename string, password string) (tls.Certificate, error) {
+
 	pemBytes, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return tls.Certificate{}, err
 	}
+
 	return decodePem(tls.Certificate{}, pemBytes, password)
 }
 
-func FromPemBytes(bytes []byte, password string) (tls.Certificate, error) {
-	return decodePem(tls.Certificate{}, bytes, password)
-}
+func FromPemBytes(cert []byte, key []byte) (tls.Certificate, error) {
 
-func FromP12File(filename string, password string) (tls.Certificate, error) {
-	p12bytes, err := ioutil.ReadFile(filename)
+	certi, err := tls.X509KeyPair(cert, key)
+
 	if err != nil {
-		return tls.Certificate{}, err
+		log.Println("CERTIFICATE ERROR:",err)
+
+		return certi , err;
 	}
-	return decodeP12(p12bytes, password)
+
+	return certi , nil;
+
 }
 
 func decodePem(cert tls.Certificate, bytes []byte, password string) (tls.Certificate, error) {
 	block, rest := pem.Decode(bytes)
+
+	log.Println("type of the block", block , rest)
+
 	if block == nil {
 		return cert, nil
 	}
@@ -43,9 +50,11 @@ func decodePem(cert tls.Certificate, bytes []byte, password string) (tls.Certifi
 	switch block.Type {
 	case "CERTIFICATE":
 		cert.Certificate = append(cert.Certificate, block.Bytes)
-	case "RSA PRIVATE KEY":
+	case "PRIVATE KEY":
 		key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 		if err != nil {
+			log.Println("PRIVATE KEY ERROR ", err)
+
 			return cert, errors.New("Error parsing RSA PRIVATE KEY")
 		}
 		cert.PrivateKey = key
@@ -53,15 +62,4 @@ func decodePem(cert tls.Certificate, bytes []byte, password string) (tls.Certifi
 		return cert, errors.New("Cert block wasn't CERTIFICATE or PRIVATE KEY")
 	}
 	return decodePem(cert, rest, password)
-}
-
-func decodeP12(bytes []byte, password string) (tls.Certificate, error) {
-	key, cert, err := pkcs12.Decode(bytes, password)
-	if err != nil {
-		return tls.Certificate{}, err
-	}
-	return tls.Certificate{
-		Certificate: [][]byte{cert.Raw},
-		PrivateKey:  key,
-	}, nil
 }

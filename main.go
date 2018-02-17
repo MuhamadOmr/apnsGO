@@ -2,18 +2,17 @@ package main
 
 
 import (
-	"fmt"
 	"log"
 )
 
-const cert = "CERT HERE"
-const key = "KEY HERE"
 
 func main() {
+	const cert = "Cert HERE"
 
 	byteCert := []byte(cert)
+
 	// generate the certificate
-	tlsCert,err := FromPemBytes(byteCert , key)
+	tlsCert,err := FromPemBytes(byteCert , byteCert)
 
 	if err != nil {
 		log.Println("Certificate Error: ", err)
@@ -23,23 +22,18 @@ func main() {
 	//make the notification
 	notification := &Notification{}
 
-	notification.DeviceToken = "TOKEN HERE"
-	notification.Topic = "com.sideshow.Apns2"
+	DeviceTokens := []string { "token 1",  "token2"}
+
 	notification.Payload = []byte(`{"aps":{"alert":"Hello!"}}`)
 
 	// push the notification and handle the response
 
 
 	client := NewClient(tlsCert)
-	res, err := client.Push(notification , HostDevelopment )
 
-	if err != nil {
-		log.Println("APNS Error: ", err)
-		return
-	}
+	Act(client, notification , HostDevelopment , DeviceTokens )
 
 
 
-	fmt.Println(res);
 
 }
